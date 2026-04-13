@@ -1,10 +1,10 @@
 {
   "date": "2026-04-13",
   "mode": "daily",
-  "run_time": "2026-04-13T10:39:17.778674",
+  "run_time": "2026-04-13T13:11:29.524270",
   "total": 17,
-  "success": 13,
-  "changed": 7,
+  "success": 12,
+  "changed": 6,
   "alerts": [
     {
       "level": "ERROR",
