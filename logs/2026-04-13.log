@@ -1,0 +1,48 @@
+[2026-04-13 07:58:04] ===== 东南亚气候监控开始 | 2026-04-13 | mode=daily =====
+[2026-04-13 07:58:05] 🔄 已更新 | precip_1day_total
+[2026-04-13 07:58:07] 🔄 已更新 | precip_7day_total
+[2026-04-13 07:58:09] 🔄 已更新 | precip_15day_total
+[2026-04-13 07:58:10] 🔄 已更新 | precip_30day_total
+[2026-04-13 07:58:11] 🔄 已更新 | precip_7day_anom
+[2026-04-13 07:58:13] 🔄 已更新 | precip_15day_anom
+[2026-04-13 07:58:14] 🔄 已更新 | precip_30day_anom
+[2026-04-13 07:58:17] 🔄 已更新 | temp_daily_min
+[2026-04-13 07:58:19] 🔄 已更新 | temp_daily_max
+[2026-04-13 07:58:23] 🔄 已更新 | temp_daily_avg
+[2026-04-13 07:58:25] ✅ 无变化 | temp_weekly_min
+[2026-04-13 07:58:27] ✅ 无变化 | temp_weekly_max
+[2026-04-13 07:58:29] ✅ 无变化 | temp_weekly_avg
+[2026-04-13 07:58:31] ✅ 无变化 | temp_weekly_anom
+[2026-04-13 07:58:34] ✅ 无变化 | temp_monthly_avg
+[2026-04-13 07:58:36] ✅ 无变化 | temp_monthly_anom
+[2026-04-13 07:58:37] ❌ 下载失败 | station_daily | 404 Client Error: Not Found for url: https://www.cpc.ncep.noaa.gov/products/gnum/SEAsia_curr.p.gnum.gif
+[2026-04-13 07:58:37] ⚠️  发现 3 条异常信号
+[2026-04-13 07:58:37]   [WARN] 距平图已更新，请关注: 降水距平 - 近7天 ⚠️
+[2026-04-13 07:58:37]   [WARN] 距平图已更新，请关注: 降水距平 - 近15天 ⚠️
+[2026-04-13 07:58:37]   [WARN] 距平图已更新，请关注: 降水距平 - 近30天 ⚠️
+[2026-04-13 07:58:37] 📄 报告已生成: c:\Users\12902\WorkBuddy\20260412154229\seasia_climate_data\reports\seasia_2026-04-13.html
+[2026-04-13 07:58:37] ===== 监控完成 | 报告: c:\Users\12902\WorkBuddy\20260412154229\seasia_climate_data\reports\seasia_2026-04-13.html =====
+[2026-04-13 07:59:30] ===== 东南亚气候监控开始 | 2026-04-13 | mode=daily =====
+[2026-04-13 07:59:31] 🔄 已更新 | precip_1day_total
+[2026-04-13 07:59:33] 🔄 已更新 | precip_7day_total
+[2026-04-13 07:59:34] 🔄 已更新 | precip_15day_total
+[2026-04-13 07:59:35] 🔄 已更新 | precip_30day_total
+[2026-04-13 07:59:37] 🔄 已更新 | precip_7day_anom
+[2026-04-13 07:59:38] 🔄 已更新 | precip_15day_anom
+[2026-04-13 07:59:39] 🔄 已更新 | precip_30day_anom
+[2026-04-13 07:59:41] 🔄 已更新 | temp_daily_min
+[2026-04-13 07:59:45] 🔄 已更新 | temp_daily_max
+[2026-04-13 07:59:47] 🔄 已更新 | temp_daily_avg
+[2026-04-13 07:59:49] ✅ 无变化 | temp_weekly_min
+[2026-04-13 07:59:51] ✅ 无变化 | temp_weekly_max
+[2026-04-13 07:59:54] ✅ 无变化 | temp_weekly_avg
+[2026-04-13 07:59:56] ✅ 无变化 | temp_weekly_anom
+[2026-04-13 07:59:59] ✅ 无变化 | temp_monthly_avg
+[2026-04-13 08:00:01] ✅ 无变化 | temp_monthly_anom
+[2026-04-13 08:00:02] ❌ 下载失败 | station_daily | 404 Client Error: Not Found for url: https://www.cpc.ncep.noaa.gov/products/gnum/SEAsia_curr.p.gnum.gif
+[2026-04-13 08:00:02] ⚠️  发现 3 条异常信号
+[2026-04-13 08:00:02]   [WARN] 距平图已更新，请关注: 降水距平 - 近7天 ⚠️
+[2026-04-13 08:00:02]   [WARN] 距平图已更新，请关注: 降水距平 - 近15天 ⚠️
+[2026-04-13 08:00:02]   [WARN] 距平图已更新，请关注: 降水距平 - 近30天 ⚠️
+[2026-04-13 08:00:02] 📄 报告已生成: c:\Users\12902\WorkBuddy\20260412154229\seasia_climate_data\reports\seasia_2026-04-13.html
+[2026-04-13 08:00:02] ===== 监控完成 | 报告: c:\Users\12902\WorkBuddy\20260412154229\seasia_climate_data\reports\seasia_2026-04-13.html =====
