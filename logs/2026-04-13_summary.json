@@ -1,15 +1,15 @@
 {
   "date": "2026-04-13",
   "mode": "daily",
-  "run_time": "2026-04-13T13:11:29.524270",
+  "run_time": "2026-04-13T13:13:01.964966",
   "total": 17,
   "success": 12,
-  "changed": 6,
+  "changed": 9,
   "alerts": [
     {
-      "level": "ERROR",
+      "level": "WARN",
       "key": "precip_7day_anom",
-      "msg": "下载失败: HTTPSConnectionPool(host='www.cpc.ncep.noaa.gov', port=443): Max retries exceeded with url: /products/JAWF_Monitoring/SEAsia/daily/p.7day.figb.gif (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)')))"
+      "msg": "距平图已更新，请关注: 降水距平 - 近7天 ⚠️"
     },
     {
       "level": "WARN",
@@ -17,9 +17,14 @@
       "msg": "距平图已更新，请关注: 降水距平 - 近15天 ⚠️"
     },
     {
-      "level": "WARN",
+      "level": "ERROR",
       "key": "precip_30day_anom",
-      "msg": "距平图已更新，请关注: 降水距平 - 近30天 ⚠️"
+      "msg": "下载失败: HTTPSConnectionPool(host='www.cpc.ncep.noaa.gov', port=443): Max retries exceeded with url: /products/JAWF_Monitoring/SEAsia/daily/p.30day.figb.gif (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)')))"
+    },
+    {
+      "level": "ERROR",
+      "key": "temp_monthly_anom",
+      "msg": "下载失败: HTTPSConnectionPool(host='www.cpc.ncep.noaa.gov', port=443): Max retries exceeded with url: /products/analysis_monitoring/regional_monitoring/1ctan5.png (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)')))"
     }
   ],
   "report": "c:\\Users\\12902\\WorkBuddy\\20260412154229\\seasia_climate_data\\reports\\seasia_2026-04-13.html"
