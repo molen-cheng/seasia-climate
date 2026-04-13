@@ -1,15 +1,15 @@
 {
   "date": "2026-04-13",
   "mode": "daily",
-  "run_time": "2026-04-13T08:00:02.748695",
+  "run_time": "2026-04-13T10:39:17.778674",
   "total": 17,
-  "success": 16,
-  "changed": 10,
+  "success": 13,
+  "changed": 7,
   "alerts": [
     {
-      "level": "WARN",
+      "level": "ERROR",
       "key": "precip_7day_anom",
-      "msg": "距平图已更新，请关注: 降水距平 - 近7天 ⚠️"
+      "msg": "下载失败: HTTPSConnectionPool(host='www.cpc.ncep.noaa.gov', port=443): Max retries exceeded with url: /products/JAWF_Monitoring/SEAsia/daily/p.7day.figb.gif (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)')))"
     },
     {
       "level": "WARN",
