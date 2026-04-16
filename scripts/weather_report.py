@@ -33,26 +33,47 @@ API_BASE = "https://api.open-meteo.com/v1/forecast"
 DAILY_VARS = "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max"
 
 
-def fetch_city(city, days=16):
-    """获取单个城市的预报数据"""
-    url = (
-        f"{API_BASE}?latitude={city['lat']}&longitude={city['lon']}"
-        f"&daily={DAILY_VARS}&forecast_days={days}&timezone={city['tz']}"
-    )
-    req = urllib.request.Request(url, headers={"User-Agent": "weather-report/1.0"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        data = json.loads(resp.read())
-    d = data["daily"]
-    result = []
-    for i, date in enumerate(d["time"]):
-        result.append({
-            "date": date,
-            "max_temp": d["temperature_2m_max"][i],
-            "min_temp": d["temperature_2m_min"][i],
-            "precip": d["precipitation_sum"][i],
-            "precip_prob": d["precipitation_probability_max"][i],
-        })
-    return result
+def fetch_all_cities(all_cities, days=16):
+    """批量获取所有城市预报数据（一次请求）"""
+    # 按时区分组请求（Open-Meteo 要求同一 timezone）
+    tz_groups = {}
+    for city in all_cities:
+        tz = city['tz']
+        if tz not in tz_groups:
+            tz_groups[tz] = []
+        tz_groups[tz].append(city)
+
+    cache = {}
+    for tz, cities in tz_groups.items():
+        lats = ",".join(str(c['lat']) for c in cities)
+        lons = ",".join(str(c['lon']) for c in cities)
+        url = (
+            f"{API_BASE}?latitude={lats}&longitude={lons}"
+            f"&daily={DAILY_VARS}&forecast_days={days}&timezone={tz}"
+        )
+        req = urllib.request.Request(url, headers={"User-Agent": "weather-report/1.0"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+        # Open-Meteo 批量返回时按请求顺序排列
+        for idx, city in enumerate(cities):
+            d = data[idx] if isinstance(data, list) else data
+            daily = d["daily"]
+            result = []
+            for i, date in enumerate(daily["time"]):
+                result.append({
+                    "date": date,
+                    "max_temp": daily["temperature_2m_max"][i],
+                    "min_temp": daily["temperature_2m_min"][i],
+                    "precip": daily["precipitation_sum"][i],
+                    "precip_prob": daily["precipitation_probability_max"][i],
+                })
+            cache[city['name']] = result
+    return cache
+
+
+def fetch_city(city_name, cache):
+    """从缓存获取单个城市数据"""
+    return cache.get(city_name, [])
 
 
 def fmt_table(days, show_index=True):
@@ -138,6 +159,14 @@ def generate_report():
     weekday = weekday_map[now.weekday()]
 
     lines = []
+    # 批量获取所有城市数据（1-2次请求替代10次）
+    all_cities = [c for cities in REGIONS.values() for c in cities]
+    try:
+        cache = fetch_all_cities(all_cities)
+    except Exception as e:
+        cache = {}
+        lines.append(f"⚠️ 数据获取失败：{e}")
+
     lines.append(f"**🌡️ 东南亚·云南·海南 每日天气预报**")
     lines.append("")
     lines.append(f"📅 {date_str} {weekday} | 北京时间 {now.strftime('%H:%M')}")
@@ -156,7 +185,10 @@ def generate_report():
             lines.append("")
 
             try:
-                data = fetch_city(city)
+                data = fetch_city(city['name'], cache)
+                if not data:
+                    lines.append(f"⚠️ 无数据")
+                    continue
                 # 今日 + 7天表格
                 lines.append(fmt_table(data[:7]))
                 lines.append("")
@@ -172,8 +204,6 @@ def generate_report():
     lines.append("### 📌 15天趋势概览")
     lines.append("")
 
-    # 缓存数据用于趋势
-    all_data = {}
     for section_name, cities in REGIONS.items():
         lines.append(f"**{section_name}**")
         lines.append("")
@@ -183,9 +213,10 @@ def generate_report():
         for city in cities:
             label = city["region"] if city["region"] else city["name"]
             try:
-                if city["name"] not in all_data:
-                    all_data[city["name"]] = fetch_city(city)
-                data = all_data[city["name"]]
+                data = fetch_city(city['name'], cache)
+                if not data:
+                    lines.append(f"| {label} | — | — | ⚠️ 无数据 |")
+                    continue
                 row = f"| {label} {fmt_trend_row(data)}"
                 lines.append(row)
             except Exception as e:
