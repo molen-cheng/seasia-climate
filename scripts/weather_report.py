@@ -20,12 +20,12 @@ REGIONS = {
         {"name": "普吉", "region": "南部西", "lat": 7.88, "lon": 98.40, "tz": "Asia/Bangkok"},
     ],
     "🇨🇳 云南": [
-        {"name": "昆明", "region": "", "lat": 25.04, "lon": 102.68, "tz": "Asia/Shanghai"},
-        {"name": "西双版纳", "region": "", "lat": 22.01, "lon": 100.80, "tz": "Asia/Shanghai"},
+        {"name": "勐腊", "region": "", "lat": 21.46, "lon": 101.56, "tz": "Asia/Shanghai"},
+        {"name": "景洪", "region": "", "lat": 22.01, "lon": 100.80, "tz": "Asia/Shanghai"},
     ],
     "🇨🇳 海南": [
-        {"name": "海口", "region": "", "lat": 20.02, "lon": 110.35, "tz": "Asia/Shanghai"},
-        {"name": "三亚", "region": "", "lat": 18.25, "lon": 109.50, "tz": "Asia/Shanghai"},
+        {"name": "琼海市", "region": "", "lat": 19.25, "lon": 110.47, "tz": "Asia/Shanghai"},
+        {"name": "儋州", "region": "", "lat": 19.52, "lon": 109.58, "tz": "Asia/Shanghai"},
     ],
 }
 
