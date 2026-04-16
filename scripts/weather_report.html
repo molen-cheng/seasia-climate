@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>东南亚·云南·海南 天气预报</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #333; }
+.header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 16px 24px; }
+.header h1 { font-size: 18px; font-weight: 600; }
+.header .meta { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+.container { max-width: 960px; margin: 0 auto; padding: 16px; }
+.section-title { font-size: 16px; font-weight: 600; margin: 16px 0 8px; padding-left: 10px; border-left: 3px solid #667eea; }
+.city-card { background: #fff; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.city-name { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #1a1a2e; }
+.today-row { display: flex; align-items: center; gap: 16px; margin-bottom: 6px; padding: 8px 12px; background: #f8f9ff; border-radius: 8px; }
+.today-label { font-size: 10px; color: #667eea; font-weight: 600; }
+.today-temp { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+.today-temp .low { font-size: 16px; color: #888; font-weight: 400; }
+.today-info { display: flex; gap: 14px; font-size: 12px; color: #555; }
+.today-info .val { font-weight: 600; color: #333; }
+.chart-wrap { position: relative; height: 220px; margin-top: 6px; }
+.trend { font-size: 11px; color: #666; margin-top: 6px; padding-top: 4px; border-top: 1px solid #f0f0f0; }
+
+.trend-section { margin-top: 24px; }
+.trend-card { background: #fff; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow-x: auto; }
+.trend-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.trend-table th { text-align: left; padding: 6px 10px; background: #f8f9ff; color: #667eea; font-weight: 600; font-size: 11px; border-bottom: 1px solid #eee; }
+.trend-table td { padding: 6px 10px; border-bottom: 1px solid #f5f5f5; }
+.trend-table td strong { color: #333; }
+.trend-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+.trend-badge.dry { background: #e8f5e9; color: #2e7d32; }
+.trend-badge.rain { background: #e3f2fd; color: #1565c0; }
+.trend-badge.heavy { background: #fce4ec; color: #c62828; }
+.footer { text-align: center; padding: 16px; font-size: 11px; color: #aaa; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>东南亚·云南·海南 天气预报</h1>
+  <div class="meta" id="meta">加载中...</div>
+</div>
+<div class="container" id="content">加载中...</div>
+<div class="footer">设计:Orange | 数据源:Open-Meteo | 生成:OpenClaw</div>
+
+<script>
+const API = "https://api.open-meteo.com/v1/forecast";
+const API_HIST = "https://archive-api.open-meteo.com/v1/archive";
+const VARS = "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max";
+
+const REGIONS = [
+  { title: "泰国", cities: [
+    { name: "清迈", region: "北部", lat: 18.79, lon: 98.98 },
+    { name: "呵叻", region: "东北部", lat: 14.97, lon: 102.10 },
+    { name: "曼谷", region: "中部", lat: 13.76, lon: 100.50 },
+    { name: "芭提雅", region: "东部", lat: 12.92, lon: 100.88 },
+    { name: "素叻他尼", region: "南部东", lat: 9.14, lon: 99.33 },
+    { name: "普吉", region: "南部西", lat: 7.88, lon: 98.40 },
+  ]},
+  { title: "云南", cities: [
+    { name: "昆明", region: "", lat: 25.04, lon: 102.68, tz: "Asia/Shanghai" },
+    { name: "西双版纳", region: "", lat: 22.01, lon: 100.80, tz: "Asia/Shanghai" },
+  ]},
+  { title: "海南", cities: [
+    { name: "海口", region: "", lat: 20.02, lon: 110.35, tz: "Asia/Shanghai" },
+    { name: "三亚", region: "", lat: 18.25, lon: 109.50, tz: "Asia/Shanghai" },
+  ]},
+];
+
+let chartId = 0;
+window.__chartsReady = false;
+
+function rainLevel(mm) {
+  if (mm >= 100) return '特大暴雨';
+  if (mm >= 50) return '暴雨';
+  if (mm >= 25) return '大雨';
+  if (mm >= 10) return '中雨';
+  if (mm >= 0.1) return '小雨';
+  return '无降水';
+}
+
+async function fetchCity(city) {
+  const tz = city.tz || "Asia/Bangkok";
+  const today = new Date();
+  const start = new Date(today); start.setDate(start.getDate() - 14); // 15天含今天
+  const fmt = d => d.toISOString().slice(0,10);
+
+  const histUrl = `${API_HIST}?latitude=${city.lat}&longitude=${city.lon}&daily=${VARS}&start_date=${fmt(start)}&end_date=${fmt(today)}&timezone=${tz}`;
+  const histResp = await fetch(histUrl);
+  const hd = (await histResp.json()).daily;
+  const hist = hd.time.map((date, i) => ({
+    date, max: hd.temperature_2m_max[i], min: hd.temperature_2m_min[i],
+    precip: hd.precipitation_sum[i], prob: hd.precipitation_probability_max[i],
+  }));
+
+  const url = `${API}?latitude=${city.lat}&longitude=${city.lon}&daily=${VARS}&forecast_days=16&timezone=${tz}`;
+  const dd = (await (await fetch(url)).json()).daily;
+  const forecast = dd.time.map((date, i) => ({
+    date, max: dd.temperature_2m_max[i], min: dd.temperature_2m_min[i],
+    precip: dd.precipitation_sum[i], prob: dd.precipitation_probability_max[i],
+  }));
+
+  return { hist, forecast };
+}
+
+function trendText(days) {
+  const temps = days.map(d => d.max);
+  const precs = days.map(d => d.precip);
+  const mid = Math.floor(days.length / 2);
+  const p1 = precs.slice(0, mid).reduce((a,b) => a+b, 0);
+  const p2 = precs.slice(mid).reduce((a,b) => a+b, 0);
+  const total = p1 + p2;
+  let rain;
+  if (total < 5) rain = "偏干";
+  else if (p2 > p1 * 1.5) rain = "后段多雨";
+  else if (p2 < p1 * 0.5) rain = "逐渐转晴";
+  else if (total > 50) rain = "持续多雨";
+  else rain = "有零星降水";
+  return `气温 ${Math.min(...temps)}~${Math.max(...temps)}°C，总降水 ${total.toFixed(0)}mm，${rain}`;
+}
+
+function badgeStyle(trend) {
+  if (trend.includes("偏干") || trend.includes("转晴")) return "dry";
+  if (trend.includes("持续") || trend.includes("多雨")) return "heavy";
+  return "rain";
+}
+
+function renderCity(city, data) {
+  const { hist, forecast } = data;
+  const today = forecast[0];
+  const label = city.region ? `${city.region} · ${city.name}` : city.name;
+  const cid = `chart_${chartId++}`;
+  // 合并：历史14天 + 预报第2天到第15天（跳过forecast[0]因为=hist最后一天=今天）
+  // 历史14天（不含今天）+ 预报15天（含今天+未来14天）= 29天
+  const allDays = [...hist.slice(0, -1), ...forecast];
+  const todayIdx = hist.length - 1; // 今天在第15个位置（0-indexed=14）
+
+  let html = `<div class="city-card"><div class="city-name">${label}</div>`;
+  html += `<div class="today-row">
+    <div><div class="today-label">今日</div></div>
+    <div class="today-temp">${today.max}° <span class="low">/ ${today.min}°</span></div>
+    <div class="today-info">
+      <span>降水 <span class="val">${today.precip}mm(${rainLevel(today.precip)})</span></span>
+      <span>概率 <span class="val">${today.prob}%</span></span>
+    </div>
+  </div>`;
+  html += `<div class="chart-wrap"><canvas id="${cid}"></canvas></div>`;
+  html += `<div class="trend">14天趋势：${trendText(forecast.slice(0, 14))}</div>`;
+  html += `</div>`;
+  return { html, cid, allDays, todayIdx };
+}
+
+function renderChart(canvasId, allDays, todayIdx) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  const labels = allDays.map(d => d.date.slice(5));
+
+  const allTemps = allDays.flatMap(d => [d.max, d.min]);
+  const minT = Math.min(...allTemps);
+  const maxT = Math.max(...allTemps);
+  const pad = Math.max(1, (maxT - minT) * 0.15);
+  const localMax = Math.max(...allDays.map(d => d.precip), 0.1);
+  const maxPrecip = localMax < 10 ? 10 : localMax;
+
+  const barGrad = ctx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+  barGrad.addColorStop(0, 'rgba(91,141,238,0.6)');
+  barGrad.addColorStop(1, 'rgba(91,141,238,0.05)');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { type: 'line', label: '最高温', data: allDays.map(d => d.max),
+          borderColor: '#e74c3c', borderWidth: 2, pointRadius: 1, pointBackgroundColor: '#e74c3c',
+          pointHoverRadius: 4, tension: 0.4, fill: false, yAxisID: 'y', order: 1 },
+        { type: 'line', label: '最低温', data: allDays.map(d => d.min),
+          borderColor: '#3498db', borderWidth: 2, pointRadius: 1, pointBackgroundColor: '#3498db',
+          pointHoverRadius: 4, tension: 0.4, fill: false, yAxisID: 'y', order: 2 },
+        { type: 'bar', label: '降水量', data: allDays.map(d => d.precip),
+          backgroundColor: barGrad, borderColor: 'rgba(91,141,238,0.4)',
+          borderWidth: 1, borderRadius: 2, yAxisID: 'y1', order: 3 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', align: 'end', labels: { boxWidth: 8, padding: 8, usePointStyle: true, pointStyle: 'circle', font: { size: 10 } } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}${ctx.dataset.yAxisID === 'y' ? '°C' : 'mm'}` } },
+        annotation: {
+          annotations: {
+            todayLine: {
+              type: 'line', xMin: todayIdx, xMax: todayIdx,
+              borderColor: 'rgba(231,76,60,0.6)', borderWidth: 2, borderDash: [4, 4],
+              label: { display: true, content: '今日', position: 'start', backgroundColor: 'rgba(231,76,60,0.8)', font: { size: 10 }, color: '#fff' }
+            }
+          }
+        }
+      },
+      scales: {
+        y: { position: 'left', min: Math.floor(minT - pad), max: Math.ceil(maxT + pad), grid: { color: '#f0f0f0' }, ticks: { callback: v => v + '°', font: { size: 10 } } },
+        y1: { position: 'right', max: maxPrecip < 10 ? 10 : Math.ceil(maxPrecip), grid: { drawOnChartArea: false }, min: 0, ticks: { callback: v => v + 'mm', font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+      },
+    },
+  });
+}
+
+function renderTrend(region) {
+  let html = `<div class="trend-card"><table class="trend-table"><thead><tr>
+    <th>区域</th><th>过去14天降水</th><th>未来14天降水</th><th>温度范围</th><th>趋势</th>
+  </tr></thead><tbody>`;
+  region.cities.forEach(c => {
+    const label = c.region || c.name;
+    const d = c._data;
+    const histP = d.hist.reduce((a,x) => a + x.precip, 0);
+    const fcP = d.forecast.slice(0,14).reduce((a,x) => a + x.precip, 0);
+    const allTemps = [...d.hist, ...d.forecast.slice(0,14)].flatMap(x => [x.max, x.min]);
+    const t = trendText(d.forecast.slice(0, 14));
+    const bs = badgeStyle(t);
+    const trendLabel = t.split("，").pop();
+    html += `<tr>
+      <td><strong>${label}</strong></td>
+      <td>${histP.toFixed(0)}mm</td>
+      <td>${fcP.toFixed(0)}mm</td>
+      <td>${Math.min(...allTemps)}~${Math.max(...allTemps)}°C</td>
+      <td><span class="trend-badge ${bs}">${trendLabel}</span></td>
+    </tr>`;
+  });
+  html += `</tbody></table></div>`;
+  return html;
+}
+
+async function main() {
+  const now = new Date();
+  const weekdays = ["周日","周一","周二","周三","周四","周五","周六"];
+  document.getElementById("meta").textContent =
+    `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${weekdays[now.getDay()]} | 北京时间 ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const params = new URLSearchParams(window.location.search);
+  const filter = params.get('region');
+  const filtered = filter === 'thai' ? REGIONS.slice(0,1) :
+                   filter === 'china' ? REGIONS.slice(1) : REGIONS;
+
+  const chartTasks = [];
+  let html = "";
+  for (const region of filtered) {
+    html += `<div class="section-title">${region.title}</div>`;
+    for (const city of region.cities) {
+      try {
+        const data = await fetchCity(city);
+        city._data = data;
+        const result = renderCity(city, data);
+        html += result.html;
+        chartTasks.push(result);
+      } catch (e) {
+        html += `<div class="city-card">${city.name} 获取失败：${e.message}</div>`;
+      }
+    }
+  }
+
+  html += `<div class="trend-section"><div class="section-title">月度降水对比</div>`;
+  for (const region of filtered) {
+    html += `<div class="section-title" style="font-size:14px;margin-top:12px">${region.title}</div>`;
+    html += renderTrend(region);
+  }
+  html += `</div>`;
+
+  document.getElementById("content").innerHTML = html;
+  chartTasks.forEach(t => renderChart(t.cid, t.allDays, t.todayIdx));
+  window.__chartsReady = true;
+}
+
+main();
+</script>
+</body>
+</html>
