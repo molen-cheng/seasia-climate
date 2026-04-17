@@ -7,9 +7,19 @@
   3. 推送企微通知（可选）
 """
 
-import os
+import os, sys
 import subprocess
 import requests
+from pathlib import Path
+
+# 加载 .env 文件
+_env_file = Path(__file__).parent / ".env"
+if _env_file.exists():
+    for _line in _env_file.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _key, _, _val = _line.partition("=")
+            os.environ.setdefault(_key.strip(), _val.strip())
 import hashlib
 import json
 from datetime import datetime, date
@@ -24,7 +34,7 @@ RPT_DIR  = BASE_DIR / "reports"
 BASE_URL = "https://www.cpc.ncep.noaa.gov"
 
 # 企业微信机器人 Webhook
-WECHAT_WEBHOOK = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=809ed264-9ef8-4371-8413-24fb5ae63658"
+WECHAT_WEBHOOK = os.environ.get("WECHAT_WEBHOOK_URL", "")
 
 # ─── 周报图像配置 ──────────────────────────────────────────
 

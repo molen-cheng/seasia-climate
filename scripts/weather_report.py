@@ -5,9 +5,23 @@
 """
 
 import json
+import os
 import sys
 import urllib.request
-from datetime import datetime, timedelta
+from pathlib import Path
+from datetime import datetime
+
+# 加载 .env 文件
+_env_file = Path(__file__).parent / ".env"
+if _env_file.exists():
+    for _line in _env_file.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _key, _, _val = _line.partition("=")
+            os.environ.setdefault(_key.strip(), _val.strip())
+
+FEISHU_WEBHOOK = os.environ.get("FEISHU_WEBHOOK_URL", "")
+FEISHU_WEBHOOK_SECRET = os.environ.get("FEISHU_WEBHOOK_SECRET", "")
 
 # ========== 城市配置 ==========
 REGIONS = {
@@ -34,8 +48,7 @@ DAILY_VARS = "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitat
 
 
 def fetch_all_cities(all_cities, days=16):
-    """批量获取所有城市预报数据（一次请求）"""
-    # 按时区分组请求（Open-Meteo 要求同一 timezone）
+    """批量获取所有城市预报数据（按时区分组合并请求）"""
     tz_groups = {}
     for city in all_cities:
         tz = city['tz']
@@ -54,7 +67,6 @@ def fetch_all_cities(all_cities, days=16):
         req = urllib.request.Request(url, headers={"User-Agent": "weather-report/1.0"})
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read())
-        # Open-Meteo 批量返回时按请求顺序排列
         for idx, city in enumerate(cities):
             d = data[idx] if isinstance(data, list) else data
             daily = d["daily"]
@@ -72,28 +84,18 @@ def fetch_all_cities(all_cities, days=16):
 
 
 def fetch_city(city_name, cache):
-    """从缓存获取单个城市数据"""
     return cache.get(city_name, [])
 
 
-def fmt_table(days, show_index=True):
-    """格式化7天表格"""
+def fmt_table(days):
     lines = []
-    header = "| 时段 | 最高温 | 最低温 | 降水量 | 降水概率 |"
-    sep = "|------|--------|--------|--------|----------|"
-    lines.append(header)
-    lines.append(sep)
+    lines.append("| 时段 | 最高温 | 最低温 | 降水量 | 降水概率 |")
+    lines.append("|------|--------|--------|--------|----------|")
     for i, d in enumerate(days):
-        if i == 0:
-            label = "今日"
-        elif i <= 6:
-            # 提取月/日
-            dt = d["date"]
-            label = dt[5:]  # MM-DD
-        else:
+        label = "今日" if i == 0 else (d["date"][5:] if i <= 6 else None)
+        if label is None:
             break
-        p_prob = d["precip_prob"]
-        p_prob_str = f"{p_prob}%" if p_prob is not None else "—"
+        p_prob_str = f"{d['precip_prob']}%" if d["precip_prob"] is not None else "—"
         lines.append(
             f"| {label} | {d['max_temp']}°C | {d['min_temp']}°C "
             f"| {d['precip']}mm | {p_prob_str} |"
@@ -102,7 +104,6 @@ def fmt_table(days, show_index=True):
 
 
 def trend_summary(days):
-    """生成趋势一句话"""
     if not days:
         return ""
     temps = [d["max_temp"] for d in days]
@@ -110,7 +111,6 @@ def trend_summary(days):
     min_t = min(temps)
     max_t = max(temps)
     total_p = sum(precs)
-    # 简单趋势判断：后半段降水 vs 前半段
     mid = len(days) // 2
     first_half_rain = sum(precs[:mid]) if mid > 0 else 0
     second_half_rain = sum(precs[mid:])
@@ -128,7 +128,6 @@ def trend_summary(days):
 
 
 def fmt_trend_row(days):
-    """15天趋势概览行"""
     if not days:
         return ""
     temps = [d["max_temp"] for d in days] + [d["min_temp"] for d in days]
@@ -152,14 +151,12 @@ def fmt_trend_row(days):
 
 
 def generate_report():
-    """生成完整报告"""
     now = datetime.now()
     weekday_map = {0: "周一", 1: "周二", 2: "周三", 3: "周四", 4: "周五", 5: "周六", 6: "周日"}
     date_str = now.strftime("%Y-%m-%d")
     weekday = weekday_map[now.weekday()]
 
     lines = []
-    # 批量获取所有城市数据（1-2次请求替代10次）
     all_cities = [c for cities in REGIONS.values() for c in cities]
     try:
         cache = fetch_all_cities(all_cities)
@@ -175,7 +172,6 @@ def generate_report():
     for section_name, cities in REGIONS.items():
         lines.append("")
         lines.append(f"### {section_name}")
-
         for city in cities:
             lines.append("")
             if city["region"]:
@@ -183,21 +179,17 @@ def generate_report():
             else:
                 lines.append(f"**📍 {city['name']}**")
             lines.append("")
-
             try:
                 data = fetch_city(city['name'], cache)
                 if not data:
                     lines.append(f"⚠️ 无数据")
                     continue
-                # 今日 + 7天表格
                 lines.append(fmt_table(data[:7]))
                 lines.append("")
-                # 7天趋势
                 lines.append(f"> 📊 7天趋势：{trend_summary(data[:7])}")
             except Exception as e:
                 lines.append(f"⚠️ 获取失败：{e}")
 
-    # 15天趋势概览
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -207,8 +199,7 @@ def generate_report():
     for section_name, cities in REGIONS.items():
         lines.append(f"**{section_name}**")
         lines.append("")
-        header = "| 区域 | 温度范围 | 总降水 | 趋势 |"
-        lines.append(header)
+        lines.append("| 区域 | 温度范围 | 总降水 | 趋势 |")
         lines.append("|------|----------|--------|------|")
         for city in cities:
             label = city["region"] if city["region"] else city["name"]
@@ -217,11 +208,9 @@ def generate_report():
                 if not data:
                     lines.append(f"| {label} | — | — | ⚠️ 无数据 |")
                     continue
-                row = f"| {label} {fmt_trend_row(data)}"
-                lines.append(row)
+                lines.append(f"| {label} {fmt_trend_row(data)}")
             except Exception as e:
                 lines.append(f"| {label} | — | — | ⚠️ 获取失败 |")
-
         lines.append("")
 
     lines.append("---")
@@ -234,8 +223,3 @@ def generate_report():
 if __name__ == "__main__":
     report = generate_report()
     print(report)
-    # 保存到文件
-    output_path = "/tmp/weather_report.md"
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(report)
-    print(f"\n[已保存到 {output_path}]", file=sys.stderr)
